@@ -1,6 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
+#ifdef _WIN32
+#include <ncurses/ncurses.h>
+#else
 #include <ncurses.h>
+#endif
 #include <stdbool.h>
 int rows = 0;
 int cols = 0;
