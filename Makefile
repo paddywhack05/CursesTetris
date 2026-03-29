@@ -1,6 +1,6 @@
 CC = gcc
-CFLAGS = -DNCURSES_STATIC
-LDFLAGS = -lncurses
+CFLAGS = -DNCURSESW_STATIC
+LDFLAGS = -lncursesw
 
 TARGET = tetris
 SRC = main.c

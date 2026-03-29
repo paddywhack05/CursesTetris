@@ -7,7 +7,8 @@
 #ifdef _WIN32
 #include <ncurses/ncurses.h>
 #else
-#include <ncurses.h>
+//#include <ncurses.h>
+#include <ncursesw/ncurses.h>
 #endif
 int rows = 0;
 int cols = 0;
@@ -59,7 +60,7 @@ void printGameState(WINDOW *pTetrisWin,int **GameState){
     werase(pTetrisWin);
     char *blockChar = "██";
     if(UTF==NULL){
-        strcpy(blockChar,"[]");
+    strcpy(blockChar,"[]");
     }
     for (int i = 0; i < cols; i++) {
         for (int j = 0; j < rows; j++) {
@@ -100,14 +101,15 @@ void appendCordArray(int **GameState,struct Cord *CordArray,struct Cord *newCord
 }
 
 int main(){
-    setlocale(LC_CTYPE,"");
-    char *textMode = setlocale(LC_CTYPE,NULL);
+     
+    setlocale(LC_ALL,"");
+    char *textMode = setlocale(LC_ALL,NULL);
     if(strstr(textMode,".UTF-8")||strstr(textMode,".utf8")){
         UTF = textMode;
     }else{
-    UTF = setlocale(LC_CTYPE,".UTF-8");
+    UTF = setlocale(LC_ALL,".UTF-8");
     }
-
+    srand(time(NULL));
     initscr();
     start_color();
     printw("how mant rows\n");
@@ -221,7 +223,7 @@ int spawnBlock(int **GameState,struct Cord *CordArray,int block){
     switch (rNum)
     {
     case Block://block
-    Cord *oldCordArray;
+    Cord oldCordArray[4];
     memcpy(oldCordArray,CordArray,sizeof(Cord)*4);
     CordArray[0].y = 0;
     CordArray[0].x = rows/2;

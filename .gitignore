@@ -57,3 +57,4 @@ dkms.conf
 #extra
 tetris
 build
+.vscode
