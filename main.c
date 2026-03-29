@@ -12,8 +12,26 @@
 int rows = 0;
 int cols = 0;
 int rotState = 0;
-int blockNum = 0;
+int currentBlock = 0;
+int nextBlock = 0;
+char *UTF;
+typedef struct Cord
+{
+int y;
+int x;
+}Cord;
 
+enum Blocks{
+    Block = 1,
+    Line,
+    Z,
+    S,
+    L,
+    J,
+    T,
+};
+
+int spawnBlock(int **GameState,Cord *CordArray,int num);
 void resetGameState(int **GameState){
     int i , j;
 for (i = 0; i < cols; i++) {
@@ -39,21 +57,49 @@ long uniTime(){
 
 void printGameState(WINDOW *pTetrisWin,int **GameState){
     werase(pTetrisWin);
+    char *blockChar = "██";
+    if(UTF==NULL){
+        strcpy(blockChar,"[]");
+    }
     for (int i = 0; i < cols; i++) {
         for (int j = 0; j < rows; j++) {
         // *2 for proper square
         wmove(pTetrisWin,i+1,j*2+1);
         if(GameState[i][j]==0){
-            wprintw(pTetrisWin,"[]");
+            wprintw(pTetrisWin," .");
+        }
+        if(GameState[i][j]==1){
+            wprintw(pTetrisWin,"%s",blockChar);
         }
         }
     }
     box(pTetrisWin,0,0);
     wrefresh(pTetrisWin);
 }
+void appendCordArray(int **GameState,struct Cord *CordArray,struct Cord *newCordArray){
+        for(int i=0; i<4;i++){
+        if(newCordArray[i].y>=cols||newCordArray[i].x>=rows){
+            //printf("too far up/right");
+            return;
+        }
+        if(newCordArray[i].x<0||newCordArray[i].y<0){
+            //printf("too far left");
+            return;
+        }
+        if(GameState[newCordArray[i].y][newCordArray[i].x]>=2){
+            //printf("colision");
+            return;
+        }
+    }
+        for(int i=0; i<4;i++){
+            GameState[CordArray[i].y][CordArray[i].x]=0;
+        }
+        for(int i=0; i<4;i++){
+            GameState[newCordArray[i].y][newCordArray[i].x]=1;
+        }
+}
 
 int main(){
-    char *UTF;
     setlocale(LC_CTYPE,"");
     char *textMode = setlocale(LC_CTYPE,NULL);
     if(strstr(textMode,".UTF-8")||strstr(textMode,".utf8")){
@@ -70,9 +116,9 @@ int main(){
     scanw(" %d",&cols);
     printw("rows %d, cols %d",rows,cols);
     if(rows < 4||cols<4){
-    rows=10;
-    cols=16;
-    printw("to few rows/columns\nsetting default\n");
+        rows=10;
+        cols=16;
+        printw("to few rows/columns\nsetting default\n");
     }
     int **GameState=malloc(cols * sizeof(int*));
     resetGameState(GameState);
@@ -84,6 +130,12 @@ int main(){
     // *2 so blocks look square
     WINDOW *pTetrisWin = newwin(cols+2,rows*2+2,0,0);
     printGameState(pTetrisWin,GameState);
+    struct Cord CordArray[4];
+    for(int i = 0;i<4;i++){
+        CordArray[i].y=0;
+        CordArray[i].x=0;
+    }
+    spawnBlock(GameState,CordArray,0);
     move(cols+2,0);
     long oldTime = uniTime();
     long currentTime = uniTime();
@@ -137,4 +189,192 @@ int main(){
     free(GameState);
     getch();
     endwin();
+}
+
+int spawnBlock(int **GameState,struct Cord *CordArray,int block){
+    int checkFlag=0;
+    int rNum;
+    int flag=0;
+    if(block==0){
+    rotState = 0;
+     if(nextBlock==0){
+     rNum = (rand() % (7 - 1 + 1)) + 1;
+     nextBlock = (rand() % (7 - 1 + 1)) + 1;
+     flag=1;
+     }
+     else {
+        rNum = nextBlock;
+        nextBlock = (rand() % (7 - 1 + 1)) + 1;
+     }
+        if(CordArray[0].y <= 1){
+           checkFlag = 1;
+        }else{
+           checkFlag = 0;
+        }
+    
+    }else{
+        rNum = block;
+    }
+
+    //rNum=Block;//!REMEMBER ME
+
+    switch (rNum)
+    {
+    case Block://block
+    Cord *oldCordArray;
+    memcpy(oldCordArray,CordArray,sizeof(Cord)*4);
+    CordArray[0].y = 0;
+    CordArray[0].x = rows/2;
+
+    CordArray[1].y = 0;
+    CordArray[1].x = rows/2+1;
+
+    CordArray[2].y = 1;
+    CordArray[2].x = rows/2;
+
+    CordArray[3].y = 1;
+    CordArray[3].x = rows/2+1;
+    appendCordArray(GameState,oldCordArray,CordArray);
+    /*
+    GameState[0][rows/2] = 1;
+    GameState[0][rows/2+1]=1;
+    GameState[1][rows/2] = 1;
+    GameState[1][rows/2+1]=1;
+    */
+    break;
+    case Line://line
+    memcpy(oldCordArray,CordArray,sizeof(Cord)*4);
+    CordArray[0].y = 0;
+    CordArray[0].x = rows/2-1;
+
+    CordArray[1].y = 0;
+    CordArray[1].x = rows/2;
+
+    CordArray[2].y = 0;
+    CordArray[2].x = rows/2+1;
+
+    CordArray[3].y = 0;
+    CordArray[3].x = rows/2+2;
+    appendCordArray(GameState,oldCordArray,CordArray);
+/*
+    GameState[0][rows/2-1] = 1;
+    GameState[0][rows/2]=1;
+    GameState[0][rows/2+1] = 1;
+    GameState[0][rows/2+2]=1;
+*/
+    break;
+    case Z://z
+    memcpy(oldCordArray,CordArray,sizeof(Cord)*4);
+    CordArray[0].y = 0;
+    CordArray[0].x = rows/2-1;
+
+    CordArray[1].y = 0;
+    CordArray[1].x = rows/2;
+
+    CordArray[2].y = 1;
+    CordArray[2].x = rows/2;
+
+    CordArray[3].y = 1;
+    CordArray[3].x = rows/2+1;
+    appendCordArray(GameState,oldCordArray,CordArray);
+/*
+    GameState[0][rows/2-1] = 1;
+    GameState[0][rows/2]=1;
+    GameState[1][rows/2] = 1;
+    GameState[1][rows/2+1]=1;
+*/
+    break;
+    case S://s
+    memcpy(oldCordArray,CordArray,sizeof(Cord)*4);
+    CordArray[0].y = 0;
+    CordArray[0].x = rows/2;
+
+    CordArray[1].y = 0;
+    CordArray[1].x = rows/2+1;
+
+    CordArray[2].y = 1;
+    CordArray[2].x = rows/2;
+
+    CordArray[3].y = 1;
+    CordArray[3].x = rows/2-1;
+    appendCordArray(GameState,oldCordArray,CordArray);
+    /*
+    GameState[0][rows/2] = 1;
+    GameState[0][rows/2+1]=1;
+    GameState[1][rows/2] = 1;
+    GameState[1][rows/2-1]=1;
+    */
+
+    break;
+    case L://L
+    memcpy(oldCordArray,CordArray,sizeof(Cord)*4);
+    CordArray[0].y = 0;
+    CordArray[0].x = rows/2-1;
+
+    CordArray[1].y = 1;
+    CordArray[1].x = rows/2-1;
+
+    CordArray[2].y = 1;
+    CordArray[2].x = rows/2;
+
+    CordArray[3].y = 1;
+    CordArray[3].x = rows/2+1;
+    appendCordArray(GameState,oldCordArray,CordArray);
+    /*
+    GameState[0][rows/2-1]=1;
+    GameState[1][rows/2-1] = 1;
+    GameState[1][rows/2] = 1;
+    GameState[1][rows/2+1]=1;
+    */
+
+    break;
+    case J://j
+    memcpy(oldCordArray,CordArray,sizeof(Cord)*4);
+    CordArray[0].y = 0;
+    CordArray[0].x = rows/2+1;
+
+    CordArray[1].y = 1;
+    CordArray[1].x = rows/2+1;
+
+    CordArray[2].y = 1;
+    CordArray[2].x = rows/2;
+
+    CordArray[3].y = 1;
+    CordArray[3].x = rows/2-1;
+    appendCordArray(GameState,oldCordArray,CordArray);
+    /*
+    GameState[0][rows/2+1]=1;
+    GameState[1][rows/2+1] = 1;
+    GameState[1][rows/2] = 1;
+    GameState[1][rows/2-1]=1;
+    */
+
+    break;
+    case T://T
+    memcpy(oldCordArray,CordArray,sizeof(Cord)*4);
+    CordArray[0].y = 0;
+    CordArray[0].x = rows/2;
+
+    CordArray[1].y = 1;
+    CordArray[1].x = rows/2;
+
+    CordArray[2].y = 1;
+    CordArray[2].x = rows/2-1;
+
+    CordArray[3].y = 1;
+    CordArray[3].x = rows/2+1;
+    appendCordArray(GameState,oldCordArray,CordArray);
+    /*
+    GameState[0][rows/2] = 1;
+    GameState[1][rows/2]=1;
+    GameState[1][rows/2-1] = 1;
+    GameState[1][rows/2+1]=1;
+    */
+
+    break;
+    default:
+    printf("rNum is broken %d",rNum);
+        break;
+    }
+    return rNum;
 }
