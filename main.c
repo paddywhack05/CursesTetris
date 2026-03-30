@@ -16,6 +16,7 @@ int rotState = 0;
 int currentBlock = 0;
 int nextBlock = 0;
 int color=2;
+int nextColor=2;
 int score=0;
 int totalLinesCleared=0;
 char *UTF;
@@ -46,6 +47,7 @@ enum Direction{
     Left,
 };
 int spawnBlock(int **GameState,Cord *CordArray,int num);
+int appendCordArray(int **GameState,struct Cord *CordArray,struct Cord *newCordArray);
 void incrementRot(){
     (rotState < 3) ? (rotState++) : (rotState=0);
 }
@@ -110,9 +112,6 @@ void printFixed(int arr[4][4])
     refresh();
 }
 void printGameState(WINDOW *pTetrisWin,int **GameState){
-    WINDOW *pNextBlockWin=newwin(5,5*2,0,rows*2+3);
-    box(pNextBlockWin,0,0);
-    wrefresh(pNextBlockWin);
     werase(pTetrisWin);
     char *blockChar = "██";
     if(UTF==NULL){
@@ -139,6 +138,54 @@ void printGameState(WINDOW *pTetrisWin,int **GameState){
     }
     box(pTetrisWin,0,0);
     wrefresh(pTetrisWin);
+    //nextBlock window
+    int realRows=rows;
+    int realCols=cols;
+    WINDOW *pNextBlockWin=newwin(5,5*2,2,rows*2+3);
+    int **box = malloc(sizeof(int*)*5);
+    Cord boxCords[4];
+        for(int i = 0;i<4;i++){
+        boxCords[i].y=0;
+        boxCords[i].x=0;
+    }
+    cols=4;
+    rows=4;
+    resetGameState(box);
+    Cord oldBoxCords[4];
+    memcpy(oldBoxCords,boxCords,sizeof(Cord)*4);
+    if(nextBlock==Line){
+        for(int i = 0;i<4;i++){
+        boxCords[i].y=0;
+        boxCords[i].x=i;
+        }
+        appendCordArray(box,oldBoxCords,boxCords);
+    }
+    else{
+        rows=3;
+        spawnBlock(box,boxCords,nextBlock);
+    }
+    for(int i = 0;i<4;i++){
+        for(int j=0;j<4;j++){
+            wmove(pNextBlockWin,i+1,j*2+1);
+        if(box[i][j]==0){
+            wprintw(pNextBlockWin,"  ");
+        }
+        if(box[i][j]==1){
+            wattron(pNextBlockWin,COLOR_PAIR(nextColor));
+            wprintw(pNextBlockWin,"%s",blockChar);
+            wattron(pNextBlockWin,COLOR_PAIR(1));
+        }
+        }
+    }
+    box(pNextBlockWin,0,0);
+    wrefresh(pNextBlockWin);
+    rows = realRows;
+    cols=realCols;
+
+    WINDOW *pScoreWin=newwin(2,5*2,0,rows*2+3);
+    wprintw(pScoreWin,"Score:");
+    mvwprintw(pScoreWin,1,0,"%d",score);
+    wrefresh(pScoreWin);
 }
 int appendCordArray(int **GameState,struct Cord *CordArray,struct Cord *newCordArray){
         for(int i=0; i<4;i++){
@@ -562,6 +609,10 @@ int main(){
         if(currentTime - oldTime >= tickRate){
             num++;
             oldTime=currentTime;
+            int code = advanceState(GameState,CordArray);
+            if(code ==ERR){
+                goto GameOver;
+            }
             printGameState(pTetrisWin,GameState);
             move(cols+2,0);
             printw("%d\n",num);
@@ -624,29 +675,32 @@ int spawnBlock(int **GameState,Cord *CordArray,int block){
     int rNum;
     int flag=0;
     if(block==0){
-    rotState = 0;
-     if(nextBlock==0){
-     rNum = (rand() % (7 - 1 + 1)) + 1;
-     nextBlock = (rand() % (7 - 1 + 1)) + 1;
-     flag=1;
-     }
-     else {
-        rNum = nextBlock;
+        rotState = 0;
+        if(nextBlock==0){
+        rNum = (rand() % (7 - 1 + 1)) + 1;
         nextBlock = (rand() % (7 - 1 + 1)) + 1;
-     }
+        color=(rand() % (5-1+1))+2;
+        nextColor=(rand() % (5-1+1))+2;
+        flag=1;
+        }
+        else{
+            rNum = nextBlock;
+            nextBlock = (rand() % (7 - 1 + 1)) + 1;
+            color=nextColor;
+            nextColor=(rand() % (5-1+1))+2;
+        }
         if(CordArray[0].y <= 1){
            checkFlag = 1;
         }else{
            checkFlag = 0;
         }
-    
+        currentBlock = rNum;
     }else{
         rNum = block;
     }
 
     //rNum=Line;//!REMEMBER ME
-    currentBlock = rNum;
-    color=(rand() % (5-1+1))+2;
+    //color=(rand() % (5-1+1))+2;
     Cord oldCordArray[4];
     memcpy(oldCordArray,CordArray,sizeof(Cord)*4);
     switch (rNum)
