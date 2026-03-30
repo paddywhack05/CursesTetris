@@ -22,7 +22,13 @@ typedef struct Cord
 int y;
 int x;
 }Cord;
-
+enum Colors{
+    Default=1,
+    Red,
+    Green,
+    Blue,
+    Yellow,
+};
 enum Blocks{
     Block = 1,
     Line,
@@ -71,10 +77,14 @@ void printGameState(WINDOW *pTetrisWin,int **GameState){
             wprintw(pTetrisWin," .");
         }
         if(GameState[i][j]==1){
+            wattron(pTetrisWin,COLOR_PAIR(color));
             wprintw(pTetrisWin,"%s",blockChar);
+            wattron(pTetrisWin,COLOR_PAIR(1));
         }
         if(GameState[i][j]>=2){
-            wprintw(pTetrisWin,"##");
+            wattron(pTetrisWin,COLOR_PAIR(GameState[i][j]));
+            wprintw(pTetrisWin,"%s",blockChar);
+            wattron(pTetrisWin,COLOR_PAIR(1));
         }
         }
     }
@@ -182,6 +192,12 @@ int main(){
     srand(time(NULL));
     initscr();
     start_color();
+    init_pair(Default, COLOR_WHITE, COLOR_BLACK);
+    init_pair(Red, COLOR_RED, COLOR_BLACK);
+    init_pair(Green, COLOR_GREEN, COLOR_BLACK);
+    init_pair(Blue, COLOR_BLUE, COLOR_BLACK);
+    init_pair(Yellow, COLOR_YELLOW, COLOR_BLACK);
+    //init_pair(3, COLOR_BLACK, COLOR_GREEN);
     printw("how mant rows\n");
     scanw(" %d",&rows);
     printw("how mant columns\n");
@@ -293,6 +309,7 @@ int spawnBlock(int **GameState,Cord *CordArray,int block){
     }
 
     //rNum=Block;//!REMEMBER ME
+    color=(rand() % (4-1+1))+2;
     Cord oldCordArray[4];
     switch (rNum)
     {
