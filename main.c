@@ -116,10 +116,66 @@ int appendCordArray(int **GameState,struct Cord *CordArray,struct Cord *newCordA
         }
 }
 
+void groundGravity(int **GameState,int *listToClear,int index){
+
+    for (int i = index-1;i>=0;i--){
+        for(int j = listToClear[i];j>1;j--){
+            for(int a = 0;a<rows;a++){
+                if(GameState[j-1][a]>=2){
+                    int oldColour=GameState[j-1][a];
+                     GameState[j-1][a]=0;
+                     GameState[j][a]=oldColour;
+                }
+            }
+        }
+    }
+
+}
+
+void clearLines(int **GameState,int *listToClear,int index){
+    int i,j;
+    for(i=0;i<index;i++){
+  for(j=0; j<rows;j++){
+        GameState[listToClear[i]][j]=0;
+    }
+    }
+    groundGravity(GameState, listToClear, index);
+    return;
+}
+
+void checkLines(int **GameState){
+    int linesToClear[4];
+    int anotherIndex=0;
+    int i , j;
+for (i = cols-1; i > 0; i--) {
+        int num = rows;
+  for (j = 0; j < rows; j++) {
+        if(!(GameState[i][j]>=2)){
+            break;
+        }else{
+            num--;
+        }
+        }
+         if(num==0){
+            linesToClear[anotherIndex]=i;
+            anotherIndex++;
+        }
+        if(num == 0){
+        }
+    }
+    
+    if(anotherIndex > 0){
+        clearLines(GameState,linesToClear,anotherIndex);
+        //givePoints(anotherIndex);
+    }
+    return;
+}
+
 int setGround(int **GameState,Cord *CordArray){
     for(int i=0; i<4;i++){
         GameState[CordArray[i].y][CordArray[i].x]=color;
     }
+    checkLines(GameState);
    int block = spawnBlock(GameState,CordArray,0);
     return block;
 }
@@ -314,10 +370,10 @@ int spawnBlock(int **GameState,Cord *CordArray,int block){
     //rNum=Block;//!REMEMBER ME
     color=(rand() % (4-1+1))+2;
     Cord oldCordArray[4];
+    memcpy(oldCordArray,CordArray,sizeof(Cord)*4);
     switch (rNum)
     {
     case Block://block
-    memcpy(oldCordArray,CordArray,sizeof(Cord)*4);
     CordArray[0].y = 0;
     CordArray[0].x = rows/2;
 
@@ -329,16 +385,8 @@ int spawnBlock(int **GameState,Cord *CordArray,int block){
 
     CordArray[3].y = 1;
     CordArray[3].x = rows/2+1;
-    //appendCordArray(GameState,oldCordArray,CordArray);
-    /*
-    GameState[0][rows/2] = 1;
-    GameState[0][rows/2+1]=1;
-    GameState[1][rows/2] = 1;
-    GameState[1][rows/2+1]=1;
-    */
     break;
     case Line://line
-    memcpy(oldCordArray,CordArray,sizeof(Cord)*4);
     CordArray[0].y = 0;
     CordArray[0].x = rows/2-1;
 
@@ -350,16 +398,8 @@ int spawnBlock(int **GameState,Cord *CordArray,int block){
 
     CordArray[3].y = 0;
     CordArray[3].x = rows/2+2;
-    //appendCordArray(GameState,oldCordArray,CordArray);
-/*
-    GameState[0][rows/2-1] = 1;
-    GameState[0][rows/2]=1;
-    GameState[0][rows/2+1] = 1;
-    GameState[0][rows/2+2]=1;
-*/
     break;
     case Z://z
-    memcpy(oldCordArray,CordArray,sizeof(Cord)*4);
     CordArray[0].y = 0;
     CordArray[0].x = rows/2-1;
 
@@ -371,16 +411,8 @@ int spawnBlock(int **GameState,Cord *CordArray,int block){
 
     CordArray[3].y = 1;
     CordArray[3].x = rows/2+1;
-    //appendCordArray(GameState,oldCordArray,CordArray);
-/*
-    GameState[0][rows/2-1] = 1;
-    GameState[0][rows/2]=1;
-    GameState[1][rows/2] = 1;
-    GameState[1][rows/2+1]=1;
-*/
     break;
     case S://s
-    memcpy(oldCordArray,CordArray,sizeof(Cord)*4);
     CordArray[0].y = 0;
     CordArray[0].x = rows/2;
 
@@ -392,17 +424,8 @@ int spawnBlock(int **GameState,Cord *CordArray,int block){
 
     CordArray[3].y = 1;
     CordArray[3].x = rows/2-1;
-    //appendCordArray(GameState,oldCordArray,CordArray);
-    /*
-    GameState[0][rows/2] = 1;
-    GameState[0][rows/2+1]=1;
-    GameState[1][rows/2] = 1;
-    GameState[1][rows/2-1]=1;
-    */
-
     break;
     case L://L
-    memcpy(oldCordArray,CordArray,sizeof(Cord)*4);
     CordArray[0].y = 0;
     CordArray[0].x = rows/2-1;
 
@@ -414,17 +437,8 @@ int spawnBlock(int **GameState,Cord *CordArray,int block){
 
     CordArray[3].y = 1;
     CordArray[3].x = rows/2+1;
-    //appendCordArray(GameState,oldCordArray,CordArray);
-    /*
-    GameState[0][rows/2-1]=1;
-    GameState[1][rows/2-1] = 1;
-    GameState[1][rows/2] = 1;
-    GameState[1][rows/2+1]=1;
-    */
-
     break;
     case J://j
-    memcpy(oldCordArray,CordArray,sizeof(Cord)*4);
     CordArray[0].y = 0;
     CordArray[0].x = rows/2+1;
 
@@ -436,14 +450,6 @@ int spawnBlock(int **GameState,Cord *CordArray,int block){
 
     CordArray[3].y = 1;
     CordArray[3].x = rows/2-1;
-    //appendCordArray(GameState,oldCordArray,CordArray);
-    /*
-    GameState[0][rows/2+1]=1;
-    GameState[1][rows/2+1] = 1;
-    GameState[1][rows/2] = 1;
-    GameState[1][rows/2-1]=1;
-    */
-
     break;
     case T://T
     memcpy(oldCordArray,CordArray,sizeof(Cord)*4);
@@ -458,14 +464,6 @@ int spawnBlock(int **GameState,Cord *CordArray,int block){
 
     CordArray[3].y = 1;
     CordArray[3].x = rows/2+1;
-    //appendCordArray(GameState,oldCordArray,CordArray);
-    /*
-    GameState[0][rows/2] = 1;
-    GameState[1][rows/2]=1;
-    GameState[1][rows/2-1] = 1;
-    GameState[1][rows/2+1]=1;
-    */
-
     break;
     default:
     printf("rNum is broken %d",rNum);
