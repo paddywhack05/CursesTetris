@@ -91,19 +91,19 @@ void printGameState(WINDOW *pTetrisWin,int **GameState){
     box(pTetrisWin,0,0);
     wrefresh(pTetrisWin);
 }
-void appendCordArray(int **GameState,struct Cord *CordArray,struct Cord *newCordArray){
+int appendCordArray(int **GameState,struct Cord *CordArray,struct Cord *newCordArray){
         for(int i=0; i<4;i++){
         if(newCordArray[i].y>=cols||newCordArray[i].x>=rows){
             //printf("too far up/right");
-            return;
+            return -1;
         }
         if(newCordArray[i].x<0||newCordArray[i].y<0){
             //printf("too far left");
-            return;
+            return -1;
         }
         if(GameState[newCordArray[i].y][newCordArray[i].x]>=2){
             //printf("colision");
-            return;
+            return -1;
         }
     }
         for(int i=0; i<4;i++){
@@ -260,7 +260,10 @@ int main(){
             case 's':
 
             case KEY_DOWN:
-            advanceState(GameState,CordArray);
+            int code = advanceState(GameState,CordArray);
+            if(code ==ERR){
+                goto GameOver;
+            }
             break;
             case 'w':
             break;
@@ -468,6 +471,9 @@ int spawnBlock(int **GameState,Cord *CordArray,int block){
     printf("rNum is broken %d",rNum);
         break;
     }
-    appendCordArray(GameState,oldCordArray,CordArray);
+    int code = appendCordArray(GameState,oldCordArray,CordArray);
+    if(code == ERR){
+        return ERR;
+    }
     return rNum;
 }
