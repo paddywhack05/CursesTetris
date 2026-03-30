@@ -15,6 +15,7 @@ int cols = 0;
 int rotState = 0;
 int currentBlock = 0;
 int nextBlock = 0;
+int color=2;
 char *UTF;
 typedef struct Cord
 {
@@ -72,6 +73,9 @@ void printGameState(WINDOW *pTetrisWin,int **GameState){
         if(GameState[i][j]==1){
             wprintw(pTetrisWin,"%s",blockChar);
         }
+        if(GameState[i][j]>=2){
+            wprintw(pTetrisWin,"##");
+        }
         }
     }
     box(pTetrisWin,0,0);
@@ -93,11 +97,77 @@ void appendCordArray(int **GameState,struct Cord *CordArray,struct Cord *newCord
         }
     }
         for(int i=0; i<4;i++){
+            if(GameState[CordArray[i].y][CordArray[i].x]==1){
             GameState[CordArray[i].y][CordArray[i].x]=0;
+            }
         }
         for(int i=0; i<4;i++){
             GameState[newCordArray[i].y][newCordArray[i].x]=1;
         }
+}
+
+int setGround(int **GameState,Cord *CordArray){
+    for(int i=0; i<4;i++){
+        GameState[CordArray[i].y][CordArray[i].x]=color;
+    }
+   int block = spawnBlock(GameState,CordArray,0);
+    return block;
+}
+
+void moveRight(int **GameState,Cord *CordArray){
+    for(int i=3; i>=0;i--){
+    if(CordArray[i].x+1 > rows-1){
+        return;
+    }
+    if(GameState[CordArray[i].y][CordArray[i].x+1] >= 2){
+        return;
+    }
+    }
+        Cord oldCordArray[4];
+        memcpy(oldCordArray,CordArray,sizeof(Cord)*4);
+           for(int i=3; i>=0;i--){
+            CordArray[i].x=CordArray[i].x+1;
+        }
+        appendCordArray(GameState,oldCordArray,CordArray);
+                return;
+}
+
+void moveLeft(int **GameState,Cord *CordArray){
+    for(int i=3; i>=0;i--){
+    if(CordArray[i].x-1 < 0){
+        return;
+    }
+    if(GameState[CordArray[i].y][CordArray[i].x-1] >= 2){
+        return;
+    }
+    }
+        Cord oldCordArray[4];
+        memcpy(oldCordArray,CordArray,sizeof(Cord)*4);
+           for(int i=3; i>=0;i--){
+            CordArray[i].x=CordArray[i].x-1;
+        }
+        appendCordArray(GameState,oldCordArray,CordArray);
+                return;
+}
+
+int advanceState(int **GameState,Cord *CordArray){
+    for(int i=3; i>=0;i--){
+    if(CordArray[i].y+1 > cols-1){
+        int block = setGround(GameState,CordArray);
+        return block;
+    }
+    if(GameState[CordArray[i].y+1][CordArray[i].x] >= 2){
+        int block = setGround(GameState,CordArray);
+        return block;
+    }
+    }
+        Cord oldCordArray[4];
+        memcpy(oldCordArray,CordArray,sizeof(Cord)*4);
+           for(int i=3; i>=0;i--){
+            CordArray[i].y=CordArray[i].y+1;
+        }
+        appendCordArray(GameState,oldCordArray,CordArray);
+                return 0;
 }
 
 int main(){
@@ -162,16 +232,19 @@ int main(){
         }
         switch(input){
             case 'a':
-            break;
+
             case KEY_LEFT:
+            moveLeft(GameState,CordArray);
             break;
             case 'd':
-            break;
+
             case KEY_RIGHT:
+            moveRight(GameState,CordArray);
             break;
             case 's':
-            break;
+
             case KEY_DOWN:
+            advanceState(GameState,CordArray);
             break;
             case 'w':
             break;
@@ -181,6 +254,7 @@ int main(){
             goto GameOver;
             break;
         }
+        printGameState(pTetrisWin,GameState);
     }
     GameOver:
     nodelay(stdscr,false);
@@ -193,7 +267,7 @@ int main(){
     endwin();
 }
 
-int spawnBlock(int **GameState,struct Cord *CordArray,int block){
+int spawnBlock(int **GameState,Cord *CordArray,int block){
     int checkFlag=0;
     int rNum;
     int flag=0;
@@ -219,11 +293,10 @@ int spawnBlock(int **GameState,struct Cord *CordArray,int block){
     }
 
     //rNum=Block;//!REMEMBER ME
-
+    Cord oldCordArray[4];
     switch (rNum)
     {
     case Block://block
-    Cord oldCordArray[4];
     memcpy(oldCordArray,CordArray,sizeof(Cord)*4);
     CordArray[0].y = 0;
     CordArray[0].x = rows/2;
@@ -236,7 +309,7 @@ int spawnBlock(int **GameState,struct Cord *CordArray,int block){
 
     CordArray[3].y = 1;
     CordArray[3].x = rows/2+1;
-    appendCordArray(GameState,oldCordArray,CordArray);
+    //appendCordArray(GameState,oldCordArray,CordArray);
     /*
     GameState[0][rows/2] = 1;
     GameState[0][rows/2+1]=1;
@@ -257,7 +330,7 @@ int spawnBlock(int **GameState,struct Cord *CordArray,int block){
 
     CordArray[3].y = 0;
     CordArray[3].x = rows/2+2;
-    appendCordArray(GameState,oldCordArray,CordArray);
+    //appendCordArray(GameState,oldCordArray,CordArray);
 /*
     GameState[0][rows/2-1] = 1;
     GameState[0][rows/2]=1;
@@ -278,7 +351,7 @@ int spawnBlock(int **GameState,struct Cord *CordArray,int block){
 
     CordArray[3].y = 1;
     CordArray[3].x = rows/2+1;
-    appendCordArray(GameState,oldCordArray,CordArray);
+    //appendCordArray(GameState,oldCordArray,CordArray);
 /*
     GameState[0][rows/2-1] = 1;
     GameState[0][rows/2]=1;
@@ -299,7 +372,7 @@ int spawnBlock(int **GameState,struct Cord *CordArray,int block){
 
     CordArray[3].y = 1;
     CordArray[3].x = rows/2-1;
-    appendCordArray(GameState,oldCordArray,CordArray);
+    //appendCordArray(GameState,oldCordArray,CordArray);
     /*
     GameState[0][rows/2] = 1;
     GameState[0][rows/2+1]=1;
@@ -321,7 +394,7 @@ int spawnBlock(int **GameState,struct Cord *CordArray,int block){
 
     CordArray[3].y = 1;
     CordArray[3].x = rows/2+1;
-    appendCordArray(GameState,oldCordArray,CordArray);
+    //appendCordArray(GameState,oldCordArray,CordArray);
     /*
     GameState[0][rows/2-1]=1;
     GameState[1][rows/2-1] = 1;
@@ -343,7 +416,7 @@ int spawnBlock(int **GameState,struct Cord *CordArray,int block){
 
     CordArray[3].y = 1;
     CordArray[3].x = rows/2-1;
-    appendCordArray(GameState,oldCordArray,CordArray);
+    //appendCordArray(GameState,oldCordArray,CordArray);
     /*
     GameState[0][rows/2+1]=1;
     GameState[1][rows/2+1] = 1;
@@ -365,7 +438,7 @@ int spawnBlock(int **GameState,struct Cord *CordArray,int block){
 
     CordArray[3].y = 1;
     CordArray[3].x = rows/2+1;
-    appendCordArray(GameState,oldCordArray,CordArray);
+    //appendCordArray(GameState,oldCordArray,CordArray);
     /*
     GameState[0][rows/2] = 1;
     GameState[1][rows/2]=1;
@@ -378,5 +451,6 @@ int spawnBlock(int **GameState,struct Cord *CordArray,int block){
     printf("rNum is broken %d",rNum);
         break;
     }
+    appendCordArray(GameState,oldCordArray,CordArray);
     return rNum;
 }
