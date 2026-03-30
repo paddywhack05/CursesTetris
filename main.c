@@ -52,6 +52,24 @@ void incrementRot(){
 void decrementRot(){
     (rotState==0) ? (rotState=3) : (rotState--);
 }
+void givePoints(int linesCleared){
+    totalLinesCleared += linesCleared;
+    switch (linesCleared)
+    {
+    case 1:
+        score += 100;
+        break;
+    case 2:
+        score += 300;
+        break;
+    case 3:
+        score += 500;
+        break;
+    case 4:
+        score += 1000;
+        break;
+    }
+}
 void resetGameState(int **GameState){
     int i , j;
 for (i = 0; i < cols; i++) {
@@ -92,6 +110,9 @@ void printFixed(int arr[4][4])
     refresh();
 }
 void printGameState(WINDOW *pTetrisWin,int **GameState){
+    WINDOW *pNextBlockWin=newwin(5,5*2,0,rows*2+3);
+    box(pNextBlockWin,0,0);
+    wrefresh(pNextBlockWin);
     werase(pTetrisWin);
     char *blockChar = "██";
     if(UTF==NULL){
@@ -194,7 +215,7 @@ for (i = cols-1; i > 0; i--) {
     
     if(anotherIndex > 0){
         clearLines(GameState,linesToClear,anotherIndex);
-        //givePoints(anotherIndex);
+        givePoints(anotherIndex);
     }
     return;
 }
