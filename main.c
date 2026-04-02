@@ -48,6 +48,7 @@ enum Direction{
 };
 int spawnBlock(int **GameState,Cord *CordArray,int num);
 int appendCordArray(int **GameState,struct Cord *CordArray,struct Cord *newCordArray);
+void getDropCords(int **GameState,Cord *CordArray);
 void incrementRot(){
     (rotState < 3) ? (rotState++) : (rotState=0);
 }
@@ -94,24 +95,7 @@ long uniTime(){
     long milli = t.tv_nsec/1e+6;
     return millisec + milli;
 }
-void printCords(Cord *CordArray,int pad){
-    move(cols+pad,0);
-    for(int i=0;i<4;i++){
-        printw("x=%d,y=%d, ",CordArray[i].x,CordArray[i].y);
-    }
-}
-void printFixed(int arr[4][4])
-{
-    move(cols+5,0);
-    for (int i = 0; i < 4; i++)
-    {
-        for (int j = 0; j < 4; j++)
-            printw("%d ", arr[i][j]);
-        printf("\n");
-    }
-    refresh();
-}
-void printGameState(WINDOW *pTetrisWin,int **GameState){
+void printGameState(WINDOW *pTetrisWin,int **GameState,Cord *CordArray){
     werase(pTetrisWin);
     char *blockChar = "██";
     if(UTF==NULL){
@@ -135,6 +119,17 @@ void printGameState(WINDOW *pTetrisWin,int **GameState){
             wattron(pTetrisWin,COLOR_PAIR(1));
         }
         }
+    }
+    Cord previewCords[4];
+    memcpy(previewCords,CordArray,sizeof(Cord)*4);
+    getDropCords(GameState,previewCords);
+    for(int i=0;i<4;i++){
+        if(GameState[previewCords[i].y][previewCords[i].x]==1){
+            continue;
+        }
+        wattron(pTetrisWin,COLOR_PAIR(color));
+        mvwprintw(pTetrisWin,previewCords[i].y+1,previewCords[i].x*2+1,"[]");
+        wattron(pTetrisWin,COLOR_PAIR(1));
     }
     box(pTetrisWin,0,0);
     wrefresh(pTetrisWin);
@@ -276,7 +271,6 @@ int setGround(int **GameState,Cord *CordArray){
     return block;
 }
 int applyPadding(Cord *newCordArray,Cord *CordArray,int **GameState){
-        printCords(newCordArray,3);
             int padding=0;
             int paddingY=0;
             if(currentBlock!=Line){
@@ -311,10 +305,10 @@ int applyPadding(Cord *newCordArray,Cord *CordArray,int **GameState){
         newCordArray[i].y = newCordArray[i].y+paddingY;
     }
     //mvprintw(cols+2,0,"Success \n%d",newCordArray[0].y);
-    printCords(newCordArray,4);
     refresh();
     return 0;
 }
+
 void rotateLine(int **GameState,Cord *CordArray,int direction){
         int box[4][4]={0};
         int paddingY;
@@ -361,7 +355,6 @@ void rotateLine(int **GameState,Cord *CordArray,int direction){
         }
             int num=0;
             Cord CordArray_rotated[4];
-            printFixed(box);
         for(int i=0;i<4;i++){
         for(int j=0;j<4;j++){
         if(box[i][j]==1){
@@ -535,14 +528,10 @@ void moveLeft(int **GameState,Cord *CordArray){
 
 int advanceState(int **GameState,Cord *CordArray){
     for(int i=3; i>=0;i--){
-    if(CordArray[i].y+1 > cols-1){
-        int block = setGround(GameState,CordArray);
-        return block;
-    }
-    if(GameState[CordArray[i].y+1][CordArray[i].x] >= 2){
-        int block = setGround(GameState,CordArray);
-        return block;
-    }
+        if(CordArray[i].y+1 > cols-1||GameState[CordArray[i].y+1][CordArray[i].x] >= 2){
+            int block = setGround(GameState,CordArray);
+            return block;
+        }
     }
         Cord oldCordArray[4];
         memcpy(oldCordArray,CordArray,sizeof(Cord)*4);
@@ -553,6 +542,41 @@ int advanceState(int **GameState,Cord *CordArray){
                 return 0;
 }
 
+void getDropCords(int **GameState,Cord *CordArray){
+    int lowestPoint=0;
+    for(int i=0; i<4;i++){
+        if(CordArray[i].y>=lowestPoint){
+            lowestPoint = CordArray[i].y;
+        }
+    }
+
+    int index=0;
+    int dropAmount=cols-1-lowestPoint;
+    for(int i=3; i>=0;i--){
+        index = 0;
+        while(CordArray[i].y+index < cols-1){
+            index++;
+            if(GameState[CordArray[i].y+index][CordArray[i].x] >= 2){
+                if(index-1<dropAmount){
+                    dropAmount = index-1;
+                }
+                break;
+            }
+        }
+    }
+    for(int i=3; i>=0;i--){
+        CordArray[i].y=CordArray[i].y+dropAmount;
+    }
+                
+}
+int hardDrop(int **GameState,Cord *CordArray){
+        Cord oldCordArray[4];
+        memcpy(oldCordArray,CordArray,sizeof(Cord)*4);
+        getDropCords(GameState,CordArray);
+        appendCordArray(GameState,oldCordArray,CordArray);
+        int block = setGround(GameState,CordArray);
+        return block;
+}
 int main(){
      
     setlocale(LC_ALL,"");
@@ -591,7 +615,7 @@ int main(){
     keypad(stdscr,1);
     // *2 so blocks look square
     WINDOW *pTetrisWin = newwin(cols+2,rows*2+2,0,0);
-    printGameState(pTetrisWin,GameState);
+    //printGameState(pTetrisWin,GameState);
     struct Cord CordArray[4];
     for(int i = 0;i<4;i++){
         CordArray[i].y=0;
@@ -613,7 +637,7 @@ int main(){
             if(code ==ERR){
                 goto GameOver;
             }
-            printGameState(pTetrisWin,GameState);
+            printGameState(pTetrisWin,GameState,CordArray);
             move(cols+2,0);
             printw("%d\n",num);
             refresh();
@@ -643,6 +667,12 @@ int main(){
                 goto GameOver;
             }
             break;
+            case ' ':
+            int code2 = hardDrop(GameState,CordArray);
+            if(code2 ==ERR){
+                goto GameOver;
+            }
+            break;
             case 'w':
 
             case KEY_UP:
@@ -657,7 +687,7 @@ int main(){
             goto GameOver;
             break;
         }
-        printGameState(pTetrisWin,GameState);
+        printGameState(pTetrisWin,GameState,CordArray);
     }
     GameOver:
     nodelay(stdscr,false);
