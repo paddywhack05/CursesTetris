@@ -186,15 +186,15 @@ int appendCordArray(int **GameState,struct Cord *CordArray,struct Cord *newCordA
         for(int i=0; i<4;i++){
         if(newCordArray[i].y>=cols||newCordArray[i].x>=rows){
             //printf("too far up/right");
-            return -1;
+            return ERR;
         }
         if(newCordArray[i].x<0||newCordArray[i].y<0){
             //printf("too far left");
-            return -1;
+            return ERR;
         }
         if(GameState[newCordArray[i].y][newCordArray[i].x]>=2){
             //printf("colision");
-            return -1;
+            return ERR;
         }
     }
         for(int i=0; i<4;i++){
@@ -270,7 +270,7 @@ int setGround(int **GameState,Cord *CordArray){
    int block = spawnBlock(GameState,CordArray,0);
     return block;
 }
-int applyPadding(Cord *newCordArray,Cord *CordArray,int **GameState){
+Cord applyPadding(Cord *newCordArray,Cord *CordArray,int **GameState,int attempts){
             int padding=0;
             int paddingY=0;
             if(currentBlock!=Line){
@@ -283,30 +283,48 @@ int applyPadding(Cord *newCordArray,Cord *CordArray,int **GameState){
                 padding = 0;
                 paddingY =0;
             }
-            mvprintw(cols+2,0,"Apply the padding");
             refresh();
+            Cord transform;
+            transform.x=0;
+            transform.y=0;
         for(int i=0; i<4;i++){
-        if(newCordArray[i].y+paddingY>=cols||newCordArray[i].x+padding>=rows){
-            mvprintw(cols+2,0,"too far up/right");
-            return -1;
-        }
-        if(newCordArray[i].x+padding<0||newCordArray[i].y+paddingY<0){
-            mvprintw(cols+2,0,"too far Left");
-            //printf("too far left");
-            return -1;
-        }
-        if(GameState[newCordArray[i].y+paddingY][newCordArray[i].x+padding]>=2){
-            mvprintw(cols+2,0,"Collision");
-            return -1;
-        }
+                    for(int j =0;j<4;j++){
+                    if(newCordArray[i].y+paddingY<0){
+                        mvprintw(cols+2,0,"too far up");
+                        transform.y=1+i;
+                        if(newCordArray[i].y+paddingY+transform.y<0){
+                            break;
+                        }
+                    }
+                    }
+                    if(newCordArray[i].y+paddingY+transform.y>=cols){
+                        mvprintw(cols+2,0,"too far down");
+                        transform.y=-1;
+                    }
+                    if(newCordArray[i].x+padding+transform.x>=rows){
+                        mvprintw(cols+2,0,"too far right");
+                        transform.x=-1;
+                    }
+                    if(newCordArray[i].x+padding+transform.x<0){
+                        mvprintw(cols+2,0,"too far Left");
+                        transform.x=1;
+                    }
+                        if((newCordArray[i].y+paddingY+transform.y>=cols-1)||GameState[newCordArray[i].y+paddingY+transform.y][newCordArray[i].x+padding+transform.x]>=2){
+                        mvprintw(cols+2,0,"Collision");
+                    }
+        //}
+        
     }
+
     for(int i=0; i<4;i++){
-        newCordArray[i].x = newCordArray[i].x+padding;
-        newCordArray[i].y = newCordArray[i].y+paddingY;
+        if(!(newCordArray[i].y+paddingY+transform.y<0||newCordArray[i].y+paddingY+transform.y>=cols||newCordArray[i].x+padding+transform.x>=rows||newCordArray[i].x+padding+transform.x<0)){
+        newCordArray[i].x = newCordArray[i].x+padding+transform.x;
+        newCordArray[i].y = newCordArray[i].y+paddingY+transform.y;
+        }
     }
     //mvprintw(cols+2,0,"Success \n%d",newCordArray[0].y);
     refresh();
-    return 0;
+    return transform;
 }
 
 void rotateLine(int **GameState,Cord *CordArray,int direction){
@@ -364,16 +382,18 @@ void rotateLine(int **GameState,Cord *CordArray,int direction){
             }
             }
         }
-        int code = applyPadding(CordArray_rotated,CordArray,GameState);
-        if(code!=ERR){
-            appendCordArray(GameState,CordArray,CordArray_rotated);
+
+        Cord transform = applyPadding(CordArray_rotated,CordArray,GameState,0);
+           int code = appendCordArray(GameState,CordArray,CordArray_rotated);
+           if(code!=ERR){
             memcpy(CordArray,CordArray_rotated,sizeof(Cord)*4);
-            if(direction == 0){
+            if(direction == Right){
                 incrementRot();
             }else{
                 decrementRot();
             }
-        }
+           }
+        
 }
 void rotate(int **GameState,Cord *CordArray,int padX,int padY,int direction){
             int matrix[3][3]={0};
@@ -441,16 +461,16 @@ void rotate(int **GameState,Cord *CordArray,int padX,int padY,int direction){
             }
         
         }
-        int code = applyPadding(CordArray_rotated,CordArray,GameState);
-        if(code!=ERR){
-            appendCordArray(GameState,CordArray,CordArray_rotated);
+        Cord transform = applyPadding(CordArray_rotated,CordArray,GameState,0);
+          int code = appendCordArray(GameState,CordArray,CordArray_rotated);
+          if(code!=ERR){
             memcpy(CordArray,CordArray_rotated,sizeof(Cord)*4);
-            if(direction == 0){
+            if(direction == Right){
                 incrementRot();
             }else{
                 decrementRot();
             }
-        }
+          }
 }
 
 void rotateRight(int **GameState,Cord *CordArray){
