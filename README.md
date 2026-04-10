@@ -23,3 +23,5 @@ or
 gcc main.c -o EXECUTABLE_NAME -lncursesw -DNCURSESW_STATIC
 ```
 or use cmake
+
+![tetris image](./img/tetris.png)
