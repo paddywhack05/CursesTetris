@@ -606,7 +606,6 @@ int main(){
     }else{
     UTF = setlocale(LC_ALL,".UTF-8");
     }
-    srand(time(NULL));
     initscr();
     start_color();
     init_pair(Default, COLOR_WHITE, COLOR_BLACK);
@@ -630,13 +629,15 @@ int main(){
     resetGameState(GameState);
     erase();
     refresh();
-    nodelay(stdscr,true);
-    noecho();
-    keypad(stdscr,1);
     // *2 so blocks look square
     WINDOW *pTetrisWin = newwin(cols+2,rows*2+2,0,0);
     //printGameState(pTetrisWin,GameState);
     struct Cord CordArray[4];
+    restart:
+    srand(time(NULL));
+    nodelay(stdscr,true);
+    noecho();
+    keypad(stdscr,true);
     for(int i = 0;i<4;i++){
         CordArray[i].y=0;
         CordArray[i].x=0;
@@ -670,17 +671,17 @@ int main(){
         }
         switch(input){
             case 'a':
-
+            case 'A':
             case KEY_LEFT:
             moveLeft(GameState,CordArray);
             break;
             case 'd':
-
+            case 'D':
             case KEY_RIGHT:
             moveRight(GameState,CordArray);
             break;
             case 's':
-
+            case 'S':
             case KEY_DOWN:
             int code = advanceState(GameState,CordArray);
             if(code ==ERR){
@@ -694,12 +695,13 @@ int main(){
             }
             break;
             case 'w':
-
+            case 'W':
             case KEY_UP:
-
+            case 'E':
             case 'e':
             rotateRight(GameState,CordArray);
             break;
+            case 'Q':
             case 'q':
             rotateLeft(GameState,CordArray);
             break;
@@ -711,13 +713,33 @@ int main(){
     }
     GameOver:
     nodelay(stdscr,false);
+    echo();
     //erase();
-    mvprintw(cols+3,0,"\nPress any key to exit \n");
+    char answer;
+    do{
+    move(cols+4,0);
+    clrtoeol();
+    mvprintw(cols+3,0,"play again y/n \n");
     refresh();
+    scanw(" %c",&answer);
+    }while(answer!='n'&&answer!='y'&&answer!='N'&&answer!='Y');
     freeGameState(GameState);
+    if(answer == 'n'||answer=='N'){
+    mvprintw(cols+4,0,"exiting");
     free(GameState);
-    getch();
+    //getch();
     endwin();
+    }else if(answer == 'y'||answer=='Y'){
+        erase();
+        resetGameState(GameState);
+        currentBlock = 0;
+        nextBlock = 0;
+        color=2;
+        nextColor=2;
+        score=0;
+        totalLinesCleared=0;
+        goto restart;
+    }
 }
 
 int spawnBlock(int **GameState,Cord *CordArray,int block){
