@@ -6,9 +6,12 @@
 #include <locale.h>
 #ifdef _WIN32
 #include <ncurses/ncurses.h>
+#include <windows.h>
+#include <direct.h>
 #else
 //#include <ncurses.h>
 #include <ncursesw/ncurses.h>
+#include <unistd.h>
 #endif
 int rows = 0;
 int cols = 0;
@@ -20,6 +23,8 @@ int nextColor=2;
 int score=0;
 int totalLinesCleared=0;
 char *UTF;
+FILE *pHighScoreFile;
+int currentHighScore=0;
 typedef struct Cord
 {
 int y;
@@ -72,6 +77,17 @@ void givePoints(int linesCleared){
         score += 1000;
         break;
     }
+    if(score>currentHighScore){
+        currentHighScore=score;
+        pHighScoreFile = fopen("highscore.txt","w");
+        if(pHighScoreFile==NULL){
+            printw("high score file not found err\n");
+            exit(1);
+        }
+        fprintf(pHighScoreFile,"%d",score);
+        fclose(pHighScoreFile);
+    }
+
 }
 void resetGameState(int **GameState){
     int i , j;
@@ -136,7 +152,7 @@ void printGameState(WINDOW *pTetrisWin,int **GameState,Cord *CordArray){
     //nextBlock window
     int realRows=rows;
     int realCols=cols;
-    WINDOW *pNextBlockWin=newwin(5,5*2,2,rows*2+3);
+    WINDOW *pNextBlockWin=newwin(5,5*2,7,rows*2+3);
     int **box = malloc(sizeof(int*)*5);
     Cord boxCords[4];
         for(int i = 0;i<4;i++){
@@ -177,9 +193,12 @@ void printGameState(WINDOW *pTetrisWin,int **GameState,Cord *CordArray){
     rows = realRows;
     cols=realCols;
 
-    WINDOW *pScoreWin=newwin(2,5*2,0,rows*2+3);
+    WINDOW *pScoreWin=newwin(7,5*2,0,rows*2+3);
     wprintw(pScoreWin,"Score:");
     mvwprintw(pScoreWin,1,0,"%d",score);
+    mvwprintw(pScoreWin,3,0,"HighScore:");
+    mvwprintw(pScoreWin,4,0,"%d",currentHighScore);
+    mvwprintw(pScoreWin,6,0,"Next block:");
     wrefresh(pScoreWin);
 }
 int appendCordArray(int **GameState,struct Cord *CordArray,struct Cord *newCordArray){
@@ -606,6 +625,84 @@ int main(){
     }else{
     UTF = setlocale(LC_ALL,".UTF-8");
     }
+    ESCDELAY = 50; //change delay to make esc exit faster
+
+    char path[1024];
+    int pathSize=1024;
+    //why do paths have to suck such ass
+    //and why do c strings suck such ass
+    #ifdef __linux__
+
+    readlink("/proc/self/exe", path, pathSize);
+    int pathlength = strlen(path);
+    path[pathlength-6]='\0';//null teminators arent all bad especially when you write bad code
+
+    //left this here so you could know i tried before i took the shortcut
+
+    /*
+    char pastSlashPath[1024];
+    char pathTolastSlash[1024];
+    for(int i=0;i<pathSize;i++){
+        char tempStr[2];
+        if(path[i]=='/'){
+            tempStr[0]='/';
+            tempStr[1]='\0';
+            strcat(&pastSlashPath[0],&tempStr[0]);
+            strcat(&pathTolastSlash[0],&pastSlashPath[0]);
+        }else if(path[i]!='\0'){
+            char addedChar = path[i];
+            tempStr[0]=addedChar;
+            tempStr[1]='\0';
+            strcat(&pastSlashPath[0],&tempStr[0]);
+        }else{
+            //strcpy(&path[0],&pathTolastSlash[0]);
+            break;
+        }
+    }*/
+    chdir(&path[0]);
+    char currentWorkingDirectory[1024];
+    char *err = getcwd(&currentWorkingDirectory[0],pathSize);
+    if(err==NULL){
+        printf("err with working directory to long or something else\n");
+        return 1;
+    }
+    #endif
+    #ifdef __FreeBSD__
+    int pathlength = strlen(path);
+    path[pathlength-6]='\0';
+    readlink("/proc/curproc/file", path, pathSize);
+    char currentWorkingDirectory[1024];
+    char *err = getcwd(&currentWorkingDirectory[0],pathSize);
+    if(err==NULL){
+        printf("err with working directory to long or something else\n");
+        return 1;
+    }
+    #endif
+    #ifdef _WIN32
+    GetModuleFileName(NULL, path, pathSize);
+    PathRemoveFileSpec(&path[0]);
+    int error = _chdir(&path[0]);
+    if(error==0){
+        printf("yipeee");
+    }else{
+        printf("uh oh win dir not changed");
+        return 1;
+    }
+    char *cwderror = _getcwd(&currentWorkingDirectory[0],1024);
+    if(cwderror == NULL){
+        printf("working dir not there or to big");
+    }
+    #endif
+    pHighScoreFile = fopen("highscore.txt","r");
+    if(pHighScoreFile==NULL){
+        printf("High score File not found\n");
+        return 1;
+    }
+    char highScoreBuffer[40];
+    fgets(&highScoreBuffer[0],40,pHighScoreFile);
+    currentHighScore = atoi(&highScoreBuffer[0]);
+    fclose(pHighScoreFile);
+
     initscr();
     start_color();
     init_pair(Default, COLOR_WHITE, COLOR_BLACK);
@@ -615,6 +712,8 @@ int main(){
     init_pair(Yellow, COLOR_YELLOW, COLOR_BLACK);
     init_pair(Magenta, COLOR_MAGENTA, COLOR_BLACK);
     //init_pair(3, COLOR_BLACK, COLOR_GREEN);
+    printw("%s\n",&path[0]);
+    printw("%s\n",&currentWorkingDirectory[0]);
     printw("how mant rows\n");
     scanw(" %d",&rows);
     printw("how mant columns\n");
