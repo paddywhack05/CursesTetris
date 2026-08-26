@@ -629,36 +629,25 @@ int main(){
 
     char path[1024];
     int pathSize=1024;
-    //why do paths have to suck such ass
-    //and why do c strings suck such ass
     #ifdef __linux__
 
     readlink("/proc/self/exe", path, pathSize);
     int pathlength = strlen(path);
-    path[pathlength-6]='\0';//null teminators arent all bad especially when you write bad code
-
-    //left this here so you could know i tried before i took the shortcut
-
-    /*
-    char pastSlashPath[1024];
-    char pathTolastSlash[1024];
-    for(int i=0;i<pathSize;i++){
-        char tempStr[2];
-        if(path[i]=='/'){
-            tempStr[0]='/';
-            tempStr[1]='\0';
-            strcat(&pastSlashPath[0],&tempStr[0]);
-            strcat(&pathTolastSlash[0],&pastSlashPath[0]);
-        }else if(path[i]!='\0'){
-            char addedChar = path[i];
-            tempStr[0]=addedChar;
-            tempStr[1]='\0';
-            strcat(&pastSlashPath[0],&tempStr[0]);
-        }else{
-            //strcpy(&path[0],&pathTolastSlash[0]);
-            break;
+    int exeNameLen=0;
+    //this is like the hard coded version but automated
+    for(int i = pathlength;i>0;i--){
+        if(path[i]=='\0'){
+            continue;
         }
-    }*/
+        if(path[i]=='/'){
+            break;
+            continue;
+        }
+        exeNameLen++;
+    }
+
+    path[pathlength-exeNameLen]='\0';
+
     chdir(&path[0]);
     char currentWorkingDirectory[1024];
     char *err = getcwd(&currentWorkingDirectory[0],pathSize);
@@ -668,9 +657,23 @@ int main(){
     }
     #endif
     #ifdef __FreeBSD__
-    int pathlength = strlen(path);
-    path[pathlength-6]='\0';
     readlink("/proc/curproc/file", path, pathSize);
+    int pathlength = strlen(path);
+    int exeNameLen=0;
+    //this is like the hard coded version but automated
+    for(int i = pathlength;i>0;i--){
+        if(path[i]=='\0'){
+            continue;
+        }
+        if(path[i]=='/'){
+            break;
+            continue;
+        }
+        exeNameLen++;
+    }
+
+    path[pathlength-exeNameLen]='\0';
+
     char currentWorkingDirectory[1024];
     char *err = getcwd(&currentWorkingDirectory[0],pathSize);
     if(err==NULL){
@@ -680,7 +683,22 @@ int main(){
     #endif
     #ifdef _WIN32
     GetModuleFileName(NULL, path, pathSize);
-    PathRemoveFileSpec(&path[0]);
+    //PathRemoveFileSpec(&path[0]); im not bothered
+    int pathlength = strlen(&path[0]);
+    int exeNameLen=0;
+    //this is like the hard coded version but automated
+    for(int i = pathlength;i>0;i--){
+        if(path[i]=='\0'){
+            continue;
+        }
+        if(path[i]=='\\'||path[i]=='/'){
+            break;
+            continue;
+        }
+        exeNameLen++;
+    }
+
+    path[pathlength-exeNameLen]='\0';
     int error = _chdir(&path[0]);
     if(error==0){
         printf("yipeee");
@@ -688,15 +706,27 @@ int main(){
         printf("uh oh win dir not changed");
         return 1;
     }
+    char currentWorkingDirectory[1024];
     char *cwderror = _getcwd(&currentWorkingDirectory[0],1024);
     if(cwderror == NULL){
         printf("working dir not there or to big");
     }
     #endif
+
     pHighScoreFile = fopen("highscore.txt","r");
     if(pHighScoreFile==NULL){
         printf("High score File not found\n");
+        pHighScoreFile = fopen("highscore.txt","w");//handles incase no file exists
+        if(pHighScoreFile==NULL){
         return 1;
+        }else{
+            printf("creating file");
+            fclose(pHighScoreFile);
+            pHighScoreFile = fopen("highscore.txt","r");
+            if(pHighScoreFile==NULL){//return if you can make it but not read it for some reason
+                return 1;
+            }
+        }
     }
     char highScoreBuffer[40];
     fgets(&highScoreBuffer[0],40,pHighScoreFile);
