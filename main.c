@@ -25,6 +25,7 @@ int totalLinesCleared=0;
 char *UTF;
 FILE *pHighScoreFile;
 int currentHighScore=0;
+WINDOW *pTetrisWin=NULL;
 typedef struct Cord
 {
 int y;
@@ -111,7 +112,7 @@ long uniTime(){
     long milli = t.tv_nsec/1e+6;
     return millisec + milli;
 }
-void printGameState(WINDOW *pTetrisWin,int **GameState,Cord *CordArray){
+void printGameState(/*WINDOW *pTetrisWin,*/int **GameState,Cord *CordArray){
     werase(pTetrisWin);
     char *blockChar = "██";
     if(UTF==NULL){
@@ -252,7 +253,99 @@ void clearLines(int **GameState,int *listToClear,int index){
     groundGravity(GameState, listToClear, index);
     return;
 }
+void lineClearAnimation(int**GameState,int *listToClear,int size){
+        werase(pTetrisWin);
+    char *blockChar = "██";
+    if(UTF==NULL){
+    strcpy(blockChar,"[]");
+    }
+    for (int i = 0; i < cols; i++) {
+        for(int q=0;q<size;q++){
+            if(listToClear[q]==i){//only real difference
+                goto skipRender;
+            }
+        }
+        for (int j = 0; j < rows; j++) {
+        // *2 for proper square
+        wmove(pTetrisWin,i+1,j*2+1);
+        if(GameState[i][j]==0){
+            wprintw(pTetrisWin," .");
+        }
+        if(GameState[i][j]==1){
+            wattron(pTetrisWin,COLOR_PAIR(color));
+            wprintw(pTetrisWin,"%s",blockChar);
+            wattron(pTetrisWin,COLOR_PAIR(1));
+        }
+        if(GameState[i][j]>=2){
+            wattron(pTetrisWin,COLOR_PAIR(GameState[i][j]));
+            wprintw(pTetrisWin,"%s",blockChar);
+            wattron(pTetrisWin,COLOR_PAIR(1));
+        }
+        }
+        skipRender:
+    }
+    box(pTetrisWin,0,0);
+    wrefresh(pTetrisWin);
+    //nextBlock window
+    int realRows=rows;
+    int realCols=cols;
+    WINDOW *pNextBlockWin=newwin(5,5*2,7,rows*2+3);
+    int **box = malloc(sizeof(int*)*5);
+    Cord boxCords[4];
+        for(int i = 0;i<4;i++){
+        boxCords[i].y=0;
+        boxCords[i].x=0;
+    }
+    cols=4;
+    rows=4;
+    resetGameState(box);
+    Cord oldBoxCords[4];
+    memcpy(oldBoxCords,boxCords,sizeof(Cord)*4);
+    if(nextBlock==Line){
+        for(int i = 0;i<4;i++){
+        boxCords[i].y=0;
+        boxCords[i].x=i;
+        }
+        appendCordArray(box,oldBoxCords,boxCords);
+    }
+    else{
+        rows=3;
+        spawnBlock(box,boxCords,nextBlock);
+    }
+    for(int i = 0;i<4;i++){
+        for(int j=0;j<4;j++){
+            wmove(pNextBlockWin,i+1,j*2+1);
+        if(box[i][j]==0){
+            wprintw(pNextBlockWin,"  ");
+        }
+        if(box[i][j]==1){
+            wattron(pNextBlockWin,COLOR_PAIR(nextColor));
+            wprintw(pNextBlockWin,"%s",blockChar);
+            wattron(pNextBlockWin,COLOR_PAIR(1));
+        }
+        }
+    }
+    box(pNextBlockWin,0,0);
+    wrefresh(pNextBlockWin);
+    rows = realRows;
+    cols=realCols;
 
+    WINDOW *pScoreWin=newwin(7,5*2,0,rows*2+3);
+    wprintw(pScoreWin,"Score:");
+    mvwprintw(pScoreWin,1,0,"%d",score);
+    mvwprintw(pScoreWin,3,0,"HighScore:");
+    mvwprintw(pScoreWin,4,0,"%d",currentHighScore);
+    mvwprintw(pScoreWin,6,0,"Next block:");
+    wrefresh(pScoreWin);
+    long startTime=uniTime();
+    long currentTime=uniTime();
+    while(true){
+        if(currentTime-startTime >= 100*size){//scales with num lines
+            break;
+        }
+        currentTime=uniTime();
+    }
+}
 void checkLines(int **GameState){
     int linesToClear[4];
     int anotherIndex=0;
@@ -275,6 +368,7 @@ for (i = cols-1; i > 0; i--) {
     }
     
     if(anotherIndex > 0){
+        lineClearAnimation(GameState,linesToClear,anotherIndex);
         clearLines(GameState,linesToClear,anotherIndex);
         givePoints(anotherIndex);
     }
@@ -656,31 +750,7 @@ int main(){
         return 1;
     }
     #endif
-    #ifdef __FreeBSD__
-    readlink("/proc/curproc/file", path, pathSize);
-    int pathlength = strlen(path);
-    int exeNameLen=0;
-    //this is like the hard coded version but automated
-    for(int i = pathlength;i>0;i--){
-        if(path[i]=='\0'){
-            continue;
-        }
-        if(path[i]=='/'){
-            break;
-            continue;
-        }
-        exeNameLen++;
-    }
 
-    path[pathlength-exeNameLen]='\0';
-
-    char currentWorkingDirectory[1024];
-    char *err = getcwd(&currentWorkingDirectory[0],pathSize);
-    if(err==NULL){
-        printf("err with working directory to long or something else\n");
-        return 1;
-    }
-    #endif
     #ifdef _WIN32
     GetModuleFileName(NULL, path, pathSize);
     //PathRemoveFileSpec(&path[0]); im not bothered
@@ -759,7 +829,7 @@ int main(){
     erase();
     refresh();
     // *2 so blocks look square
-    WINDOW *pTetrisWin = newwin(cols+2,rows*2+2,0,0);
+    pTetrisWin = newwin(cols+2,rows*2+2,0,0);
     //printGameState(pTetrisWin,GameState);
     struct Cord CordArray[4];
     restart:
@@ -787,7 +857,7 @@ int main(){
             if(code ==ERR){
                 goto GameOver;
             }
-            printGameState(pTetrisWin,GameState,CordArray);
+            printGameState(/*pTetrisWin,*/GameState,CordArray);
             move(cols+2,0);
             printw("%d\n",num);
             refresh();
@@ -838,7 +908,7 @@ int main(){
             goto GameOver;
             break;
         }
-        printGameState(pTetrisWin,GameState,CordArray);
+        printGameState(/*pTetrisWin,*/GameState,CordArray);
     }
     GameOver:
     nodelay(stdscr,false);
