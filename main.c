@@ -26,6 +26,9 @@ char *UTF;
 FILE *pHighScoreFile;
 int currentHighScore=0;
 WINDOW *pTetrisWin=NULL;
+WINDOW *pScoreWin=NULL;
+WINDOW *pNextBlockWin=NULL;
+long oldTime=0;
 typedef struct Cord
 {
 int y;
@@ -153,7 +156,7 @@ void printGameState(/*WINDOW *pTetrisWin,*/int **GameState,Cord *CordArray){
     //nextBlock window
     int realRows=rows;
     int realCols=cols;
-    WINDOW *pNextBlockWin=newwin(5,5*2,7,rows*2+3);
+    //WINDOW *pNextBlockWin=newwin(5,5*2,7,rows*2+3);
     int **box = malloc(sizeof(int*)*5);
     Cord boxCords[4];
         for(int i = 0;i<4;i++){
@@ -194,7 +197,7 @@ void printGameState(/*WINDOW *pTetrisWin,*/int **GameState,Cord *CordArray){
     rows = realRows;
     cols=realCols;
 
-    WINDOW *pScoreWin=newwin(7,5*2,0,rows*2+3);
+    //WINDOW *pScoreWin=newwin(7,5*2,0,rows*2+3);
     wprintw(pScoreWin,"Score:");
     mvwprintw(pScoreWin,1,0,"%d",score);
     mvwprintw(pScoreWin,3,0,"HighScore:");
@@ -253,18 +256,7 @@ void clearLines(int **GameState,int *listToClear,int index){
     groundGravity(GameState, listToClear, index);
     return;
 }
-void lineClearAnimation(int**GameState,int *listToClear,int size){
-        werase(pTetrisWin);
-    char *blockChar = "██";
-    if(UTF==NULL){
-    strcpy(blockChar,"[]");
-    }
-    for (int i = 0; i < cols; i++) {
-        for(int q=0;q<size;q++){
-            if(listToClear[q]==i){//only real difference
-                goto skipRender;
-            }
-        }
+void drawRow(int**GameState,int i,char *blockChar){
         for (int j = 0; j < rows; j++) {
         // *2 for proper square
         wmove(pTetrisWin,i+1,j*2+1);
@@ -282,6 +274,43 @@ void lineClearAnimation(int**GameState,int *listToClear,int size){
             wattron(pTetrisWin,COLOR_PAIR(1));
         }
         }
+}
+void animationFrame(int**GameState,int *listToClear,int size,char *fadeBlock){
+        werase(pTetrisWin);
+    char *blockChar = "██";
+    if(UTF==NULL){
+    strcpy(blockChar,"[]");
+    strcpy(fadeBlock,"  ");
+    }
+    for (int i = 0; i < cols; i++) {
+        for(int q=0;q<size;q++){
+            if(listToClear[q]==i){//only real difference
+                if(fadeBlock[0]==' '){
+                goto skipRender;
+                }else{
+                    drawRow(GameState,i,fadeBlock);
+                }
+                goto skipRender;
+            }
+        }
+        /*for (int j = 0; j < rows; j++) {
+        // *2 for proper square
+        wmove(pTetrisWin,i+1,j*2+1);
+        if(GameState[i][j]==0){
+            wprintw(pTetrisWin," .");
+        }
+        if(GameState[i][j]==1){
+            wattron(pTetrisWin,COLOR_PAIR(color));
+            wprintw(pTetrisWin,"%s",blockChar);
+            wattron(pTetrisWin,COLOR_PAIR(1));
+        }
+        if(GameState[i][j]>=2){
+            wattron(pTetrisWin,COLOR_PAIR(GameState[i][j]));
+            wprintw(pTetrisWin,"%s",blockChar);
+            wattron(pTetrisWin,COLOR_PAIR(1));
+        }
+        }*/
+       drawRow(GameState,i,blockChar);
         skipRender:
     }
     box(pTetrisWin,0,0);
@@ -289,7 +318,7 @@ void lineClearAnimation(int**GameState,int *listToClear,int size){
     //nextBlock window
     int realRows=rows;
     int realCols=cols;
-    WINDOW *pNextBlockWin=newwin(5,5*2,7,rows*2+3);
+   // WINDOW *pNextBlockWin=newwin(5,5*2,7,rows*2+3);
     int **box = malloc(sizeof(int*)*5);
     Cord boxCords[4];
         for(int i = 0;i<4;i++){
@@ -330,21 +359,75 @@ void lineClearAnimation(int**GameState,int *listToClear,int size){
     rows = realRows;
     cols=realCols;
 
-    WINDOW *pScoreWin=newwin(7,5*2,0,rows*2+3);
+   // WINDOW *pScoreWin=newwin(7,5*2,0,rows*2+3);
     wprintw(pScoreWin,"Score:");
     mvwprintw(pScoreWin,1,0,"%d",score);
     mvwprintw(pScoreWin,3,0,"HighScore:");
     mvwprintw(pScoreWin,4,0,"%d",currentHighScore);
     mvwprintw(pScoreWin,6,0,"Next block:");
     wrefresh(pScoreWin);
-    long startTime=uniTime();
+}
+void lineClearAnimation(int**GameState,int *listToClear,int size){
+  
+    /*long startTime=uniTime();
     long currentTime=uniTime();
     while(true){
         if(currentTime-startTime >= 100*size){//scales with num lines
             break;
         }
         currentTime=uniTime();
+    }*/
+
+   "▓▓▒▒░░  ";
+   char *fade1="▓▓";
+   char*fade2="▒▒";
+   char*fade3="░░";
+   char*fade4="  ";
+
+   char *downFade1="██";
+   char *downFade2="▇▇";
+   char *downFade3="▆▆";
+   char *downFade4="▅▅";
+   char *downFade5="▄▄";
+   char *downFade6="▃▃";
+   char *downFade7="▂▂";
+   char *downFade8="▁▁";
+   
+   if(size==4){
+    animationFrame(GameState,listToClear,size,downFade1);
+    napms(50);
+    animationFrame(GameState,listToClear,size,downFade2);
+    napms(50);
+    animationFrame(GameState,listToClear,size,downFade3);
+    napms(50);
+    animationFrame(GameState,listToClear,size,downFade4);
+    napms(50);
+    animationFrame(GameState,listToClear,size,downFade5);
+    napms(50);
+    animationFrame(GameState,listToClear,size,downFade6);
+    napms(50);
+    animationFrame(GameState,listToClear,size,downFade7);
+    napms(50);
+    animationFrame(GameState,listToClear,size,downFade8);
+    napms(50);
+   }else if(size>1){
+    int delayTime=50;
+    if(size==3){
+        delayTime=75;
     }
+    animationFrame(GameState,listToClear,size,fade1);
+    napms(delayTime);
+    animationFrame(GameState,listToClear,size,fade2);
+    napms(delayTime);
+    animationFrame(GameState,listToClear,size,fade3);
+    napms(delayTime);
+    animationFrame(GameState,listToClear,size,fade4);
+    napms(delayTime);
+   }else{
+    animationFrame(GameState,listToClear,size,fade4);
+    napms(100);
+   }
+   oldTime=uniTime();
 }
 void checkLines(int **GameState){
     int linesToClear[4];
@@ -830,6 +913,8 @@ int main(){
     refresh();
     // *2 so blocks look square
     pTetrisWin = newwin(cols+2,rows*2+2,0,0);
+    pScoreWin=newwin(7,5*2,0,rows*2+3);
+    pNextBlockWin=newwin(5,5*2,7,rows*2+3);
     //printGameState(pTetrisWin,GameState);
     struct Cord CordArray[4];
     restart:
@@ -843,7 +928,7 @@ int main(){
     }
     spawnBlock(GameState,CordArray,0);
     move(cols+2,0);
-    long oldTime = uniTime();
+    oldTime = uniTime();//resets after animation
     long currentTime = uniTime();
     int num=1;
     int tickRate=500;
